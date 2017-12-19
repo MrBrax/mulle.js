@@ -1,0 +1,4 @@
+
+class InvalidSource(Exception):
+    pass
+

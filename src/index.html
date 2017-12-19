@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+	
+	<head>
+		
+		<meta charset="UTF-8" />
+		
+		<title>mulle.js</title>
+
+		<script src="phaser.min.js"></script>
+		<script src="bundle.js"></script>
+
+		<link href="style.css" rel="stylesheet" />
+
+		<script>
+
+			window.addEventListener("DOMContentLoaded", function(e){
+				console.debug('Launch');
+				window.game.setup();
+			});
+
+		</script>
+
+	</head>
+	
+	<body>
+
+		<div id="wrapper">
+			
+			<div id="player"></div>
+
+			<div id="settings">
+				<button class="button" onclick="window.game.scale.startFullScreen();">fullscreen</button>
+				<a class="button" href="progress/" target="_blank">progress</a>
+				<a class="button" href="info/" target="_blank">info</a>
+			</div>
+
+			<div id="debug">
+				<button class="button" onclick="window.game.mulle.debug = !window.game.mulle.debug; this.innerHTML = 'debug ' + (window.game.mulle.debug ? 'on' : 'off');">debug off</button>
+				<button class="button" onclick="window.localStorage.removeItem('mulle_SaveData')">wipe save</button>
+			</div>
+
+			<div id="cheats"></div>
+			
+		</div>
+
+	</body>
+
+</html>

@@ -1,0 +1,182 @@
+* { box-sizing: border-box; }
+
+// html {
+// 	height: 100%;
+// }
+
+body {
+
+	background: #000;
+
+	padding: 0;
+	margin: 0;
+	
+	// display: flex;
+	// justify-content: center;
+	// align-items: center;
+
+	// height: 100%;
+
+}
+
+#wrapper {
+
+	// text-align: center;
+
+	max-width: 640px;
+
+	margin: 40px auto;
+	
+	// height: 100%;
+
+}
+
+#settings {
+
+	margin-top: 4px;
+
+	.button {
+
+		padding: 6px 12px;
+
+		background: #40426C;
+
+		&:hover {
+			background: #4F517C;
+		}
+
+	}
+
+}
+
+#debug {
+
+	margin-top: 4px;
+
+}
+
+#cheats {
+
+	margin-top: 4px;
+
+	button {
+		margin: 0.5px;
+	}
+
+}
+
+
+#content {
+
+	height: 90%;
+
+	margin: auto;
+
+}
+
+
+#player {
+
+	position: relative;
+
+	/*
+	height: 90vh;
+	max-width: 90vw;
+	*/
+
+	/*
+	width: 100%;
+	height: 100%;
+	*/
+
+	width: 640px;
+	height: 480px;
+
+}
+
+#player canvas {
+	
+	// cursor: url(ui/default.png) 5 1, default;
+
+	
+	// &.cursor-grab {
+	// 	cursor: url(ui/grab.png) 13 10, grab;
+	// 	cursor: url(ui/grab.png) 13 10, -webkit-grab;
+	// }
+	// &.cursor-point { cursor: url(ui/point.png) 1 1, pointer; }
+	// &.cursor-left { cursor: url(ui/left.png) 0 5, pointer; }
+	// &.cursor-right { cursor: url(ui/right.png) 27 5, pointer; }
+	// &.cursor-back { cursor: url(ui/back.png) 14 7, pointer; }
+	// &.cursor-drag_forward { cursor: url(ui/drag_forward.png) 15 16, n-resize; }
+	// &.cursor-drag_left { cursor: url(ui/drag_left.png) 20 17, w-resize; }
+	// &.cursor-drag_right { cursor: url(ui/drag_right.png) 16 15, e-resize; }
+	
+
+	&.C_Standard { cursor: url(ui/default.png) 5 1, default; }
+	&.C_Grab {
+		cursor: url(ui/grab.png) 13 10, grab;
+		cursor: url(ui/grab.png) 13 10, -webkit-grab;
+	}
+	&.C_Left { cursor: url(ui/left.png) 0 5, pointer; }
+	&.C_MoveLeft { cursor: url(ui/drag_left.png) 20 17, w-resize; }
+	&.C_Click { cursor: url(ui/point.png) 1 1, pointer; }
+	&.C_MoveIn { cursor: url(ui/drag_forward.png) 15 16, n-resize; }
+	&.C_Right { cursor: url(ui/right.png) 27 5, pointer; }
+	&.C_MoveRight { cursor: url(ui/drag_right.png) 16 15, e-resize; }
+
+	
+	//&.cursor-drive { cursor: url(ui/drive.png) 15 15, move; }
+
+	//@for $i from 1 through 16 {
+
+	//	&.cursor-direction-#{$i} {
+	//		$num: 161 + ( ( $i - 1 ) * 2 );
+	//		cursor: url(ui/#{$num}.png) 8 8, move;
+	//	}
+
+	//}
+
+	
+
+}
+
+.button {
+	
+	cursor: pointer;
+
+	font: 12px Arial;
+	color: #ccc;
+	background: #333;
+
+	border: none;
+
+	padding: 3px 6px;	
+
+	transition: 0.1s all linear;
+
+	text-decoration: none;
+
+	&:hover {
+		background: #444;
+	}
+
+	&:disabled {
+		background: #222;
+		cursor: not-allowed;
+	}
+
+}
+
+.chatInput {
+
+	border: none;
+	font: 14px Arial;
+	padding: 4px;
+	background: rgba(255,255,255,.5);
+	width: 180px;
+
+	&:focus {
+		background: rgba(255,255,255,1);
+	}
+
+}

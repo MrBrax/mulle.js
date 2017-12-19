@@ -1,0 +1,8 @@
+node_modules/
+dist/
+package-lock.json
+assets_new/
+audiosprite/__pycache__/
+docs/
+mulle.sublime-workspace
+mulle.sublime-project
