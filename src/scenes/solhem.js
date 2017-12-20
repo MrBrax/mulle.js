@@ -4,7 +4,7 @@ import MulleSprite from 'objects/sprite';
 import MulleBuildCar from 'objects/buildcar';
 import MulleActor from 'objects/actor';
 
-export default class SolhemState extends MulleState {
+class SolhemState extends MulleState {
 
 	preload(){
 
@@ -186,3 +186,5 @@ export default class SolhemState extends MulleState {
 	}
 
 }
+
+export default SolhemState;

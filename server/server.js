@@ -3,7 +3,7 @@ const readline = require('readline');
 const moment = require('moment');
 const colors = require('colors');
 
-const rl = readline.createInterface({
+const rlCli = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout
 });
@@ -26,13 +26,84 @@ class MulleServer {
 			parts: true
 		};
 
+		this.bannedIP = {};
+
+		this.playerDB = {}
+
 	}
 
 	log( text ){
 
 		var date = moment().format('YYYY-MM-DD HH:mm:ss');
 
-		console.log( ( "[" + date + "] " ).gray + text );
+		rlCli.output.write('\x1b[2K\r');
+
+		// console.log( ( "[" + date + "] " ).gray + text );
+
+		process.stdout.write( ( "[" + date + "] " ).gray + text + "\n" );
+
+		// rlCli.output.write('\x1b[2K\r');
+
+		rlCli._refreshLine();
+
+		
+		// readline.cursorTo( process.stdout, 0, 0 );
+		
+		// process.stdout.write( "Static Test" );
+
+		// readline.cursorTo( process.stdout, 0, 30 );
+
+		// console.log( process.stdout );
+
+	}
+
+	kickid( id, reason ){
+
+		if(!id) return false;
+
+		var kicked = false;
+
+		for( var client of this.wss.clients ){
+
+			if( client.clientId && client.clientId == id ){
+
+				client.send( JSON.stringify( { error: reason ? 'Kicked. Reason: ' + reason : 'Kicked.' } ) );
+
+				client.terminate();
+
+				kicked = true;
+
+			}
+
+		}
+
+		return kicked;
+
+	}
+
+	banid( id, reason ){
+
+		if(!id) return false;
+
+		var banned = false;
+
+		for( var client of this.wss.clients ){
+
+			if( client.clientId && client.clientId == id ){
+
+				client.send( JSON.stringify( { error: reason ? 'Banned. Reason: ' + reason : 'Banned.' } ) );
+
+				client.terminate();
+
+				this.bannedIP[ client.clientIP ] = reason ? reason : 'No reason';
+
+				banned = true;
+
+			}
+
+		}
+
+		return banned;
 
 	}
 
@@ -68,7 +139,20 @@ class MulleServer {
 
 			ws.isAlive = true;
 
-			
+			// bans
+			if( this.bannedIP[ clientIP ] ){
+
+				this.log( ('Banned client ' + this.pclient( ws ) + ' tried connecting.').red );
+
+				ws.send( JSON.stringify( { error: 'You are banned.' } ) );
+
+				ws.terminate();
+
+				return;
+
+			}
+
+			// too many connections
 			if( this.ipClients[ clientIP ] ){
 
 				if( this.ipClients[ clientIP ] > maxConnections ){
@@ -121,8 +205,6 @@ class MulleServer {
 		  
 			ws.on('message', (message) => {
 				
-				// console.log('received');
-				
 				var j = JSON.parse(message);
 
 				// update player name
@@ -157,8 +239,6 @@ class MulleServer {
 
 						});
 
-						// console.log('player joined');
-
 						this.broadcast('Spelare "' + ( ws.playerName ? ws.playerName : ws.clientId ) + '" anslöt till världen.', true);
 
 						ws.isInWorld = true;
@@ -170,8 +250,6 @@ class MulleServer {
 							
 							if (client !== ws && client.readyState === WebSocket.OPEN) {
 								
-								// client.send('left');
-
 								client.send( JSON.stringify( { leave: ws.clientId } ) );
 
 							}
@@ -179,8 +257,6 @@ class MulleServer {
 						});
 
 						ws.isInWorld = false;
-
-						// console.log('player left');
 
 						this.broadcast('Spelare "' + ( ws.playerName ? ws.playerName : ws.clientId ) + '" lämnade världen.', true);
 
@@ -289,8 +365,6 @@ class MulleServer {
 							client.currentMap == ws.currentMap
 						) {
 
-							// console.log('pos send', j.x, j.y);
-
 							client.send(
 								JSON.stringify( {
 									i: ws.clientId,
@@ -307,10 +381,6 @@ class MulleServer {
 					ws.currentX = j.x;
 					ws.currentY = j.y;
 					ws.currentDir = j.d;
-
-					// console.log('pos update', j.x, j.y);
-
-					// console.log('[pos]', ws.clientId, j.x, j.y );
 				
 
 				// recieve message
@@ -399,24 +469,30 @@ class MulleServer {
 		
 		// timeout
 		this.interval = setInterval( () => {
-  			
-  			this.wss.clients.forEach( (ws) => {
-    
-    			if (ws.isAlive === false){
+			
+			this.wss.clients.forEach( (ws) => {
+	
+				if (ws.isAlive === false){
 
-    				this.log( ('Client ' + this.pclient( ws ) + ' timed out.').red );
+					this.log( ('Client ' + this.pclient( ws ) + ' timed out.').red );
 
-    				return ws.terminate();
+					return ws.terminate();
 
-    			}
+				}
 
-    			ws.isAlive = false;
-   				ws.ping('', false, true);
+				ws.isAlive = false;
+				ws.ping('', false, true);
 
-  			} );
+			} );
 
 		}, 30000);
-		
+
+		// debug
+		/*
+		this.debugInterval = setInterval( () => {
+  			this.log( ( 'Debug text! ' + Date.now() ).green );
+		}, 500);
+		*/
 
 
 	}
@@ -444,8 +520,6 @@ class MulleServer {
 	}
 
 	sendRaceTimes( cl ){
-
-		// console.log('Race times: ' + this.raceTimes );
 
 		if( cl ){
 
@@ -476,7 +550,7 @@ ms.start();
 
 ms.log('Start executed!');
 
-rl.on('line', (line) => {
+rlCli.on('line', (line) => {
 
 	var args = line.split(' ');
 
@@ -486,9 +560,11 @@ rl.on('line', (line) => {
 
 	if( mainArg == 'status' ){
 
-		ms.log( 'Connected players: ', Object.keys( ms.wss.clients ).length );
+		ms.log( 'Connected players: ' + ms.wss.clients.size );
 
-		if( !args[1] || args[1] == 'all' ){
+		ms.log( 'Lists: all, world' );
+
+		if( args[1] == 'all' ){
 
 			ms.wss.clients.forEach( (client) => {
 
@@ -523,11 +599,34 @@ rl.on('line', (line) => {
 
 	if( mainArg == 'msg' ){
 
-		var text = line.substr(4);
+		var text = args.slice(1).join(" ").trim();
+
+		if(!text) return;
 
 		ms.broadcast(text);
 
-		ms.log( '[admin-msg]', text );
+		ms.log( ('Admin message: ' + text).cyan );
+		
+		return;
+	}
+
+	if( mainArg == 'alert' ){
+
+		var text = args.slice(1).join(" ").trim();
+
+		if(!text) return;
+
+		for( var client of ms.wss.clients ){
+						
+			if( client.readyState === WebSocket.OPEN ) {
+				
+				client.send( JSON.stringify( { message: text } ) );
+
+			}
+
+		}
+
+		ms.log( ('Alert: ' + text).cyan );
 		
 		return;
 	}
@@ -554,27 +653,72 @@ rl.on('line', (line) => {
 	}
 
 	
-	if( mainArg == 'kick' ){
+	if( mainArg == 'kickid' ){
 
 		var id = parseInt( args[1] );
 
-		if(!id) return;
+		if(!id){
+			ms.log( 'Player ID not supplied'.red );
+			return;
+		}
 
-		ms.wss.clients.forEach( (client) => {
+		var reason = args.slice(2).join(" ").trim();
 
-			if( client.clientId && client.clientId == id ){
+		var kicked = ms.kickid( id, reason );
+		
+		if( kicked ){
+			ms.log( 'Player #' + id + ' kicked. Reason: ' + reason );
+		}else{
+			ms.log( 'Could not kick player'.red );
+		}
+		
+		return;
+		
+	}
 
-				client.terminate();
+	if( mainArg == 'banid' ){
 
-				ms.log('[kicked]', id);
+		var id = parseInt( args[1] );
+
+		if(!id){
+			ms.log( 'Player ID not supplied'.red );
+			return;
+		}
+
+		var reason = args.slice(2).join(" ").trim();
+
+		var banned = ms.banid( id, reason );
+		
+		if( banned ){
+			ms.log( 'Player #' + id + ' banned. Reason: ' + reason );
+		}else{
+			ms.log( 'Could not ban player'.red );
+		}
+		
+		return;
+		
+	}
+
+	if( mainArg == 'quit' || mainArg == 'exit' ){
+
+		ms.log( 'Shutting down.'.red );
+
+		for( var client of ms.wss.clients ){
+						
+			if( client.readyState === WebSocket.OPEN ) {
+				
+				client.send( JSON.stringify( { message: 'Server shutting down.' } ) );
 
 			}
 
-		});
-		
-		ms.log('[kick]', id);
-		
+		}
+
+		ms.wss.close();
+
+		process.exit(0);
+
 		return;
+
 	}
 	
 

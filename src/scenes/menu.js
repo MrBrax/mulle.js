@@ -6,7 +6,7 @@ import MulleAudio from 'objects/audio';
 
 import MulleSave from 'struct/savedata';
 
-export default class MenuState extends MulleState {
+class MenuState extends MulleState {
 
 	preload(){
 
@@ -174,3 +174,5 @@ export default class MenuState extends MulleState {
 
 
 }
+
+export default MenuState;

@@ -21,7 +21,7 @@ import MulleCarPart from 'objects/carpart';
   	PileDoors:[rect(8, 106, 56, 323), rect(44, 84, 115, 224), rect(111, 41, 151, 103), rect(463, 47, 503, 107), rect(512, 69, 592, 208), rect(572, 94, 637, 312)]]
 */
 
-export default class JunkState extends MulleState {
+class JunkState extends MulleState {
 
 	constructor(){
 
@@ -275,4 +275,6 @@ export default class JunkState extends MulleState {
 		// if(this.rect) game.debug.geom(this.rect,'#0fffff');
 	}
 
-};
+}
+
+export default JunkState;

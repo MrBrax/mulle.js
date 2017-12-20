@@ -4,7 +4,7 @@ import MulleSprite from 'objects/sprite';
 import MulleBuildCar from 'objects/buildcar';
 import MulleActor from 'objects/actor';
 
-export default class FiggeFerrumState extends MulleState {
+class FiggeFerrumState extends MulleState {
 
 	preload(){
 
@@ -162,3 +162,5 @@ export default class FiggeFerrumState extends MulleState {
 	}
 
 }
+
+export default FiggeFerrumState;

@@ -33,6 +33,20 @@ class MulleNet {
 			this.socket = null;
 		});
 
+		this.socket.addEventListener('message', (msg) => {
+
+			var msg = JSON.parse( event.data );
+
+			if( msg.error ){
+				alert( msg.error );
+			}
+
+			if( msg.message ){
+				alert( msg.message );
+			}
+
+		});
+
 	}
 
 	disconnect(){

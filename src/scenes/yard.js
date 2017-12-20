@@ -8,7 +8,7 @@ import MulleActor from 'objects/actor';
 import MulleButton from 'objects/button';
 import MulleCarPart from 'objects/carpart';
 
-export default class YardState extends MulleState {
+class YardState extends MulleState {
 
 	preload(){
 
@@ -201,3 +201,5 @@ export default class YardState extends MulleState {
 	}
 
 }
+
+export default YardState;

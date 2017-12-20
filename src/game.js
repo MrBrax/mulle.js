@@ -9,6 +9,7 @@ import LoadState from 'load';
 import MulleNet from 'util/network';
 import MulleCursor from 'util/cursor';
 
+
 import MenuState from 'scenes/menu';
 
 import GarageState from 'scenes/garage';
@@ -25,17 +26,11 @@ import StureStortandState from 'scenes/sturestortand';
 import SaftfabrikState from 'scenes/saftfabrik';
 import SolhemState from 'scenes/solhem';
 
-import MulleSubtitle from 'objects/subtitle';
 
-/*
-var FiggeFerrumState = require( 'scenes/figgeferrum' );
-var GarageState = require( 'scenes/garage' );
-var JunkState = require( 'scenes/junk' );
-var MenuState = require( 'scenes/menu' );
-var RoadDogState = require( 'scenes/roaddog' );
-var WorldState = require( 'scenes/world' );
-var YardState = require( 'scenes/yard' );
-*/
+// var requireScenes = require.context('scenes', true, /\.js$/);
+// requireScenes.keys().forEach(requireScenes);
+
+import MulleSubtitle from 'objects/subtitle';
 
 import MulleAudio from 'objects/audio';
 

@@ -31,6 +31,7 @@ class BootState extends Phaser.State {
 
 			});
 
+			// inform on connection close
 			this.game.mulle.net.socket.addEventListener('close', (event) => {
 
 				if(this.game.state.current == 'boot'){
@@ -57,7 +58,6 @@ class BootState extends Phaser.State {
 		}else{
 
 			this.game.state.start('load');
-
 
 		}
 

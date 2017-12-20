@@ -4,7 +4,7 @@ import MulleSprite from 'objects/sprite';
 import MulleBuildCar from 'objects/buildcar';
 import MulleActor from 'objects/actor';
 
-export default class RoadDogState extends MulleState {
+class RoadDogState extends MulleState {
 
 	preload(){
 
@@ -72,3 +72,5 @@ export default class RoadDogState extends MulleState {
 	}
 
 }
+
+export default RoadDogState;
