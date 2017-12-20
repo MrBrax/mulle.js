@@ -20,13 +20,19 @@ class MulleServer {
 
 		this.ipClients = {};
 
+		this.blockInfo = {
+			map: true,
+			scene: true,
+			parts: true
+		};
+
 	}
 
 	log( text ){
 
 		var date = moment().format('YYYY-MM-DD HH:mm:ss');
 
-		console.log( "[" + date + "] " + text );
+		console.log( ( "[" + date + "] " ).gray + text );
 
 	}
 
@@ -36,7 +42,7 @@ class MulleServer {
 
 		if( ws.playerName ){
 
-			return '"' + ws.playerName + '" (#' + ws.clientId + ')';
+			return '"' + ws.playerName + '" (#' + ws.clientId + ( ws.clientIP ? ' ' + ws.clientIP : '' ) + ')';
 
 		}else{
 
@@ -50,20 +56,28 @@ class MulleServer {
 
 		this.log('Starting...');
 
+		// server
 		this.wss = new WebSocket.Server({ port: 8765 });
 
-		this.wss.on('connection', (ws) => {
+		// client connection
+		this.wss.on('connection', (ws, req) => {
 
-			// var clientIP = ws.upgradeReq.connection.remoteAddress;
+			const clientIP = req.connection.remoteAddress;
 
-			/*
+			ws.clientIP = clientIP;
+
+			ws.isAlive = true;
+
+			
 			if( this.ipClients[ clientIP ] ){
 
 				if( this.ipClients[ clientIP ] > maxConnections ){
 
+					this.log( ('Client ' + this.pclient( ws ) + ' connection limit from ' + clientIP + '').red );
+
 					ws.send( JSON.stringify( { error: 'too many connections from ip' } ) );
 
-					ws.close();
+					ws.terminate();
 
 					return;
 				}
@@ -71,9 +85,11 @@ class MulleServer {
 				this.ipClients[ clientIP ]++;
 
 			}else{
+
 				this.ipClients[ clientIP ] = 0;
+
 			}
-			*/
+			
 
 			ws.clientId = ++this.totalClients;
 
@@ -81,11 +97,11 @@ class MulleServer {
 
 			ws.playerName = 'Player' + ws.clientId;
 
-			this.log( ('Client ' + this.pclient( ws ) + ' connected').gray );
+			if(!this.blockInfo['connect']) this.log( ('Client ' + this.pclient( ws ) + ' connected.').gray );
 
 			ws.on('close', ( ev ) => {
 
-				this.log( ('Client ' + this.pclient( ws ) + ' disconnected.').gray );
+				if(!this.blockInfo['disconnect']) this.log( ('Client ' + this.pclient( ws ) + ' disconnected.').gray );
 
 				this.wss.clients.forEach( (client) => {
 							
@@ -97,7 +113,9 @@ class MulleServer {
 
 				});
 
-				this.broadcast('Spelare "' + ( ws.playerName ? ws.playerName : ws.clientId ) + '" kopplade från.');
+				this.broadcast('Spelare "' + ( ws.playerName ? ws.playerName : ws.clientId ) + '" kopplade från.', true);
+
+				this.ipClients[ clientIP ]--;
 
 			});
 		  
@@ -110,7 +128,7 @@ class MulleServer {
 				// update player name
 				if( j.name ){
 
-					this.log( ('Client ' + this.pclient( ws ) + ' set their name to "' + j.name + '".').cyan );
+					if(!this.blockInfo['name']) this.log( ('Client ' + this.pclient( ws ) + ' set their name to "' + j.name + '".').cyan );
 
 					ws.playerName = j.name;
 
@@ -119,7 +137,7 @@ class MulleServer {
 
 					ws.carParts = j.parts;
 
-					// this.log('Client #' + ws.clientId + ' updated their parts: ' + ws.carParts );
+					if(!this.blockInfo['parts']) this.log( 'Client ' + this.pclient( ws ) + ' updated their parts: ' + ws.carParts );
 
 				// change scene
 				}else if( j.scene ){
@@ -141,7 +159,7 @@ class MulleServer {
 
 						// console.log('player joined');
 
-						this.broadcast('Spelare "' + ( ws.playerName ? ws.playerName : ws.clientId ) + '" anslöt till världen.');
+						this.broadcast('Spelare "' + ( ws.playerName ? ws.playerName : ws.clientId ) + '" anslöt till världen.', true);
 
 						ws.isInWorld = true;
 
@@ -164,11 +182,11 @@ class MulleServer {
 
 						// console.log('player left');
 
-						this.broadcast('Spelare "' + ( ws.playerName ? ws.playerName : ws.clientId ) + '" lämnade världen.');
+						this.broadcast('Spelare "' + ( ws.playerName ? ws.playerName : ws.clientId ) + '" lämnade världen.', true);
 
 					}
 
-					this.log( ('Client ' + this.pclient( ws ) + ' changed scene to "' + j.scene + '".').gray );
+					if(!this.blockInfo['scene']) this.log( ('Client ' + this.pclient( ws ) + ' changed scene to "' + j.scene + '".').gray );
 
 					ws.currentScene = j.scene;
 				
@@ -177,6 +195,11 @@ class MulleServer {
 				}else if( j.map ){
 										
 					// for the current player
+					
+					if( ws.currentMap && ws.currentMap == j.map ){
+						this.log( ('Client ' + this.pclient( ws ) + ' spamming map #' + j.map + '.').red );
+						return;
+					}
 					
 					var visibleClients = {};
 					this.wss.clients.forEach( (client) => {
@@ -208,6 +231,11 @@ class MulleServer {
 
 					this.wss.clients.forEach( (client) => {
 
+						if( client.readyState !== WebSocket.OPEN ){
+						
+							return;
+						}
+
 						// if( client.currentMap != j.map ) return;
 
 						var visibleClients = {};
@@ -215,6 +243,7 @@ class MulleServer {
 						this.wss.clients.forEach( (sub) => {
 							
 							if ( client !== sub && sub.readyState === WebSocket.OPEN && sub.currentScene == 'world' && sub.currentMap == client.currentMap ) {
+								
 								visibleClients[ sub.clientId ] = {
 									
 									x: sub.currentX,
@@ -226,11 +255,16 @@ class MulleServer {
 									p: sub.carParts
 
 								};
+
 							}
 
 						});
 
-						client.send( JSON.stringify( { c: visibleClients } ) );
+						client.send(
+							JSON.stringify( {
+								c: visibleClients
+							} )
+						);
 
 					});
 
@@ -240,7 +274,7 @@ class MulleServer {
 					}
 
 
-					this.log( ('Client ' + this.pclient( ws ) + ' changed map to ' + j.map + '.').gray );
+					if(!this.blockInfo['map']) this.log( ('Client ' + this.pclient( ws ) + ' changed map to ' + j.map + '.').gray );
 				
 
 				// change position
@@ -257,12 +291,14 @@ class MulleServer {
 
 							// console.log('pos send', j.x, j.y);
 
-							client.send( JSON.stringify( {
-								i: ws.clientId,
-								x: j.x,
-								y: j.y,
-								d: j.d
-							} ) );
+							client.send(
+								JSON.stringify( {
+									i: ws.clientId,
+									x: j.x,
+									y: j.y,
+									d: j.d
+								} )
+							);
 
 						}
 
@@ -282,20 +318,25 @@ class MulleServer {
 
 					if( j.msg.length > 140 ) return;
 
+					// broadcast to everyone
 					this.wss.clients.forEach( (client) => {
 						
 						if ( client.readyState === WebSocket.OPEN && client.currentScene == 'world' ) {
-							
-							// client.send('joined');
 
-							client.send( JSON.stringify( { p: ws.playerName, i: ws.clientId, msg: j.msg } ) );
+							client.send(
+								JSON.stringify( {
+									p: ws.playerName,
+									i: ws.clientId,
+									msg: j.msg
+								} )
+							);
 
 						}
 
 					});
 
-					// ws.playerName
-					this.log( ( 'Client ' + this.pclient( ws ) + ' wrote: ' + j.msg ).yellow );
+					// log message
+					if(!this.blockInfo['msg']) this.log( ( 'Client ' + this.pclient( ws ) + ' wrote: ' + j.msg ).white );
 				
 
 				// race time
@@ -315,45 +356,90 @@ class MulleServer {
 						this.raceTimes.splice( this.raceTimes.length - 1, 1);
 					}
 
-					console.log( 'Client ' + this.pclient( ws ) + ' finished a race: ' + j.race );
+					if(!this.blockInfo['race']) this.log( 'Client ' + this.pclient( ws ) + ' finished a race: ' + j.race );
 
 					this.sendRaceTimes();
 
 				}else{
 
 					// main log
-					console.log( ( 'Client ' + this.pclient( ws ) + ' sent unhandled data: ' + j ).red );
+					this.log( ( 'Client ' + this.pclient( ws ) + ' sent unhandled data: ' ).red );
+					console.log( j )
 
 				}
 			
 
 			});
 
+			ws.on('pong', (heartbeat) => {
+
+				ws.isAlive = true;
+
+				// this.log( ('Client ' + this.pclient( ws ) + ' heartbeat!').gray )
+
+			});
+
+			ws.on('error', (err) => {
+
+				console.log('Client error', err);
+
+			});
+
 			ws.send( JSON.stringify( { msg: 'welcome' } ) );
 
 		});
-
+	
+		// listen message
 		this.wss.on('listening', (s) => {
 
 			this.log( 'Server started!'.green );
 
 		});
 
+		
+		// timeout
+		this.interval = setInterval( () => {
+  			
+  			this.wss.clients.forEach( (ws) => {
+    
+    			if (ws.isAlive === false){
+
+    				this.log( ('Client ' + this.pclient( ws ) + ' timed out.').red );
+
+    				return ws.terminate();
+
+    			}
+
+    			ws.isAlive = false;
+   				ws.ping('', false, true);
+
+  			} );
+
+		}, 30000);
+		
+
+
 	}
 
-	broadcast( text ){
+	broadcast( text, noLog = false ){
 
 		this.wss.clients.forEach( (client) => {
 
-			if( client.currentScene == 'world' ){
+			if( client.readyState === WebSocket.OPEN && client.currentScene == 'world' ){
 
-				client.send( JSON.stringify( { p: 'console', i: 0, msg: text } ) );
+				client.send(
+					JSON.stringify( {
+						p: 'console',
+						i: 0,
+						msg: text
+					})
+				);
 
 			}
 
 		});
 
-		this.log( ( 'Broadcast message: ' + text ).red );
+		if( !this.blockInfo['broadcast'] && !noLog ) this.log( ( 'Broadcast message: ' + text ).yellow );
 
 	}
 
@@ -388,7 +474,7 @@ console.log('Mulle.js online server');
 var ms = new MulleServer();
 ms.start();
 
-console.log('start executed');
+ms.log('Start executed!');
 
 rl.on('line', (line) => {
 
@@ -400,19 +486,37 @@ rl.on('line', (line) => {
 
 	if( mainArg == 'status' ){
 
-		console.log( 'Connected players: ', Object.keys( ms.wss.clients ).length );
+		ms.log( 'Connected players: ', Object.keys( ms.wss.clients ).length );
 
-		ms.wss.clients.forEach( (client) => {
+		if( !args[1] || args[1] == 'all' ){
 
-			console.log(' ' + client.clientId + ' | ' + client.playerName + ' | ' + client.currentScene );
+			ms.wss.clients.forEach( (client) => {
 
-			if( client.currentScene == 'world' ){
+				ms.log(' ' + client.clientId + ' | ' + client.playerName + ' | ' + client.currentScene );
 
-				console.log('  ' + client.currentMap + ' - ' + client.currentX + ',' + client.currentY );
+				if( client.currentScene == 'world' ){
 
-			}
+					ms.log('  ' + client.currentMap + ' - ' + client.currentX + ',' + client.currentY );
 
-		});
+				}
+
+			});
+
+		}else if( args[1] == 'world' ){
+
+			ms.wss.clients.forEach( (client) => {
+
+				if( client.currentScene == 'world' ){
+
+					ms.log(' ' + client.clientId + ' | ' + client.playerName + ' | ' + client.currentScene );
+
+					ms.log('  ' + client.currentMap + ' - ' + client.currentX + ',' + client.currentY );
+
+				}
+
+			});
+
+		}
 		
 		return;
 	}
@@ -423,22 +527,57 @@ rl.on('line', (line) => {
 
 		ms.broadcast(text);
 
-		console.log( '[admin-msg]', text );
+		ms.log( '[admin-msg]', text );
 		
 		return;
 	}
 
-	/*
+	if( mainArg == 'block' ){
+
+		var mod = args[1];
+
+		if( ms.blockInfo[ mod ] ){
+
+			delete ms.blockInfo[ mod ];
+
+			ms.log( 'Now showing "' + mod + '"' );
+
+		}else{
+
+			ms.blockInfo[ mod ] = true;
+
+			ms.log( 'Now blocking "' + mod + '"' );
+
+		}
+		
+		return;
+	}
+
+	
 	if( mainArg == 'kick' ){
 
-		var id = line.substr(4);
+		var id = parseInt( args[1] );
+
+		if(!id) return;
+
+		ms.wss.clients.forEach( (client) => {
+
+			if( client.clientId && client.clientId == id ){
+
+				client.terminate();
+
+				ms.log('[kicked]', id);
+
+			}
+
+		});
 		
-		console.log('[kick]', id);
+		ms.log('[kick]', id);
 		
 		return;
 	}
-	*/
+	
 
-	console.warn( ( 'Invalid command: ' + line ).red );
+	ms.log( ( 'Invalid command: ' + line ).red );
 
 });
